@@ -1,9 +1,28 @@
+'''
+Outline
+journals - Define journals to search in
+pubsearch - Download records from Pubmed (journals)
+split - split records into fields (pubsearch)
+gender - assign male of female and sort (split)
+tidy - decide what fields to have in final (gender)
+'''
+
 from Bio import Entrez
 from Bio import Medline
 #is Biopython installed where this python executable is pointing to?
 #this was set up to run under Anaconda (C:/Users/Conor/Anaconda)
 
 import requests, json
+
+def journals():
+    journal_list = {"Angewandte":"0370543", "JACS":"7503056", "J Med Chem":"9716531"}
+
+    jids = []
+    for value in journal_list.values():
+        jids.append(value)
+    
+    return jids
+
 
 def getGenders(names):
     url = ""
@@ -26,18 +45,18 @@ def getGenders(names):
             retrn.append((u'None',u'0.0',0.0))
         return retrn
 
-journal_list = {"Angewandte":"0370543", "JACS":"7503056", "J Med Chem":"9716531"}
 
-jids = []
-for value in journal_list.values():
-    jids.append(value)
     
     
 def pubsearch():
     Entrez.email = "skippydoesntknow@gmail.com"
     #always let Entrez know who is calling    
     
-    IDhandle = Entrez.esearch(db="pubmed", term="peptide AND (7503056[JID] OR 0370543[JID] or 9716531[JID])", mindate="2011", maxdate="2014",                   retstart=2500, retmax=100)
+    pubterm = ""
+    for i in journals():
+        pubterm += i+"[JID] or "
+    
+    IDhandle = Entrez.esearch(db="pubmed", term="peptide AND ("+pubterm+" ", mindate="2011", maxdate="2014", retstart=2500, retmax=100)
     #for documentation on esearch, see
     #http://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESearch
     #max number for retmax is 100k. Use retstart to get more than this.
