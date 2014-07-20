@@ -22,15 +22,15 @@ def journals():
     
     return jids
 
-def pubsearch(xyz):
+def pubsearch(jids):
     Entrez.email = "skippydoesntknow@gmail.com"
     #always let Entrez know who is calling    
     
     pubterm = ""
-    for i in journals():
+    for i in jids:
         pubterm += i+"[JID] or "
     
-    IDhandle = Entrez.esearch(db="pubmed", term="peptide AND ("+pubterm+" and ", mindate="2011", maxdate="2014", retmax=2)
+    IDhandle = Entrez.esearch(db="pubmed", term="peptide AND ("+pubterm+" and ", mindate="2011", maxdate="2014", retmax=2500)
     #for documentation on esearch, see
     #http://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESearch
     #max number for retmax is 100k. Use retstart to get more than this.
@@ -56,19 +56,22 @@ def pubmedRecords(records):
     for i in records:
         JournalID = i.get("JID", "?")
         authors = i.get("FAU", "?")
-        #abstracts = i.get("AB", "?")
+        abstracts = i.get("AB", "?")
+        title = i.get("TI", "?")
         journal = i.get("JT", "?")
-        tup = (JournalID, authors, journal)
+        tup = (JournalID, authors, journal, title, abstracts)
         pubmed_records.append(tup)
     return pubmed_records
     #returns a list
    
  
-def recordSort(records):
-    pubmed_records = pubmedRecords(records)
+def recordSort(records, jids):
+    pubmed_records = []
+    for i in records:
+        pubmed_records.append(i)
     # a new list called pubmed_records
     
-    pubmed_auths = [l[1] for l in pubmed_records if l[0] in jids]
+    pubmed_auths = [l[1] for l in pubmed_records]
     #take the authors and fill up a new list
     
     lastFirstauthor_list = []
@@ -77,7 +80,10 @@ def recordSort(records):
     for auth in pubmed_auths:
         lastFirstauthor_list.append(auth[-1])
     
-    # Go through records. If the words chemistry etc appear in the Journal Title (JT), grab the list of Author Full names (FAU) and append the last element of that list (hopefully the corresponding author)
+    # Go through records. 
+    # If the words chemistry etc appear in the Journal Title (JT), 
+    # grab the list of Author Full names (FAU) and append the last element 
+    # of that list (hopefully the corresponding author)
         
     author_list_clean=[]
     for k in lastFirstauthor_list:
@@ -85,18 +91,18 @@ def recordSort(records):
             last, first = k.split(',')
             author_list_clean.append(first[1:] + " " + last)
         
-    first_names = []
+    names_and_first_names = []
     for i1 in author_list_clean:
         i2 = i1.split(" ")
         tup2 = (i1, (i2[0])) # gives name, firstname tuple. is this necessary?
-        first_names.append(tup2) # new tuple (name, firstname)
-    return first_names
+        names_and_first_names.append(tup2) # new tuple (name, firstname)
+    return names_and_first_names
     
-'''  
-def getGenders(names):
+  
+def getGenders(records):
     url = ""
     cnt = 0
-    for name in names:
+    for name in records:
         if url == "":
             url = "name[0]=" + name
         else:
@@ -114,7 +120,45 @@ def getGenders(names):
             retrn.append((u'None',u'0.0',0.0))
         return retrn
 
-'''
+def returnGender(records3):
+    # need to get output from tuples put out by recordSort
+    # then pass the second element of each tuple to gender getting function
+    # get the result back. Match the elements of returned gender list to the 
+    # tuples that were passed to them to give a new list.
+    l1=[] 
+    for elem in records3:
+        l1.append(elem)
+        # from tuple to a new list containing names, firstnames
+    print "l1 =  "+ str(l1)
+    
+    l2 = []
+    for i in l1:
+        #print "i = " + str(i)
+        l2.append(i[1])
+        # new list containing "male, female"
+    l3 = []
+    for i in l2:
+        j = getGenders([i])
+        l3.append(tuple(j))
+    
+    print "l2 = " + str(l2)    
+    z=zip(l1,l3)
+    #zip these into a bipartite list of lists
+    print "z = "+str(z)
+    
+    znew = []
+    for i in z:
+        znew.append(i[0] + i[1])
+    # just taking the names and first names   
+
+    wimmin = []
+    for i in znew:
+        if "female" in i[2]:
+            wimmin.append(i[0])
+            
+    print wimmin
+
+
 def main():
     jids = journals()
     print jids
@@ -122,49 +166,11 @@ def main():
     
     records2 = pubmedRecords(records1)
     print records2
-    records3 = recordSort(records2)
     
+    records3 = recordSort(records2, jids)
+    print (records3)
+    
+    records4 = returnGender(records3)
+        
 if __name__  == "__main__":
     main()
-    
-
-'''
-pubsearch()
-
-pubmedRecords(records)
-
-first_names = recordSort(records)
-print first_names
-
-names = ["conor", "peter"]
-for i in names:
-    print getGenders(i)
-
-
-#if __name__ == '__main__':
-
-l1=[] 
-for elem in first_names:
-    l1.append(list(elem))
-    #new list containing names, firstnames
-
-l2 = []
-for elem in getGenders("conor", "piera"):
-    l2.append(list(elem))
-# new list containing "male, female"
-    
-z=zip(l1,l2)
-#zip these into a three partite list of lists
-
-znew = []
-for i in z:
-    znew.append(i[0] + i[1])
-# just taking the names and first names   
-
-wimmin = []
-for i in znew:
-    if "female" in i[2]:
-        wimmin.append(i[0])
-        
-print wimmin
-'''   
